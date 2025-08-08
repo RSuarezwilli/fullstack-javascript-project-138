@@ -3,9 +3,15 @@
   "version": "1.0.0",
   "description": "[![Actions Status](https://github.com/RSuarezwilli/fullstack-javascript-project-138/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/RSuarezwilli/fullstack-javascript-project-138/actions)",
   "main": "index.js",
+  "type": "module",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "willian suarez",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "cheerio": "^1.1.2"
+  }
 }
