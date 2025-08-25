@@ -57,11 +57,3 @@ export const processHtml = async (htmlFileName) => {
   const outputHtmlPath = path.join(process.cwd(), htmlFileName);
   fs.writeFileSync(outputHtmlPath, $.html());
 };
-
-// Ejemplo de ejecución directa (solo para pruebas locales)
-// (async () => {
-//   await processHtml('pagina.html');
-//   console.log('Página procesada.');
-// })();
-
-  
