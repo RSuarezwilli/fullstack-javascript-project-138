@@ -5,8 +5,9 @@ import axios from 'axios';
 import cheerio from 'cheerio';
 
 
-//const downloadPage = async (pageUrl, outputDirName = '') => {
-  await downloadResources($, pageUrl, fullOutputDirname, assetsDirName);
+const downloadPage = async (pageUrl, outputDirName = '') => {
+  log('Iniciando descarga de la página:', pageUrl);
+  // await downloadResources($, pageUrl, fullOutputDirname, assetsDirName);
    // 1. Normalizar nombre de salida 
 outputDirName = sanitizeOutputDir(outputDirName);
 const url = new URL(pageUrl);
@@ -22,6 +23,8 @@ const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
  return axios
  .get(pageUrl)
  .then((response) => {
+  log('Página principal descargada correctamente');
+
    const html = response.data;
    const $ = cheerio.load(html);
 
@@ -41,6 +44,7 @@ const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
         resources.push({ url: resourceFullUrl, path: resourcePath });
     }
     });
+    log(`Se encontraron ${resources.length} recursos para descargar`);
       // 4. Crear directorios
 
       return fs
@@ -57,11 +61,12 @@ const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
       })
       .then(() => {
         // 6. Guardar HTML modificado
-
+        log('Recursos descargados y guardados correctamente');
         const modifiedHtml = $.html();
         return fs.writeFile(fullOutputFileName, modifiedHtml);
       })
       .catch((err) => {
+        log('Error descargando la página:', err.message);
         console.error("Error descargando la página:", err.message);
       });
   });
@@ -71,4 +76,4 @@ const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
 // utilizar cheerio para parsear el HTML y encontrar los recursos
 // guardar la página y los recursos en las rutas calculadas
 
-
+};
