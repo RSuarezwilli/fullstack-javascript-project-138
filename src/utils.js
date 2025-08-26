@@ -1,4 +1,6 @@
 import path from 'path';
+import fs from 'fs/promises';
+import axios from 'axios';
 
 
 const processedName = (name) => name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
@@ -27,3 +29,47 @@ export const sanitizeOutputDir = (dir) => {
     }
     return dir;
 };
+
+
+// Descarga y reescribe recursos locales (img, link, script)
+export const downloadResources = async ($, pageUrl, outputDir) => {
+  const pageHost = new URL(pageUrl).hostname;
+
+  const elements = [
+    { selector: 'img[src]', attr: 'src' },
+    { selector: 'link[href]', attr: 'href' },
+    { selector: 'script[src]', attr: 'src' },
+  ];
+
+  const resources = [];
+
+  elements.forEach(({ selector, attr }) => {
+    $(selector).each((_, el) => {
+      const value = $(el).attr(attr);
+      if (!value) return;
+
+      const resourceUrl = new URL(value, pageUrl);
+
+      // Solo recursos locales (mismo dominio o subdominios)
+      if (resourceUrl.hostname.endsWith(pageHost)) {
+        resources.push({ el, attr, url: resourceUrl.toString() });
+      }
+    });
+  });
+
+  for (const { el, attr, url } of resources) {
+    const filename = urlToFilename(url, ''); // usa tu helper
+    const filepath = path.join(outputDir, filename);
+
+    const { data } = await axios.get(url, { responseType: 'arraybuffer' });
+    await fs.writeFile(filepath, data);
+
+    // Reescribir en el HTML
+    $(el).attr(attr, path.basename(outputDir) + '/' + filename);
+  }
+};
+
+
+
+
+

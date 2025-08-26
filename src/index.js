@@ -1,11 +1,12 @@
-import { sanitizeOutputDir, urlToFilename } from "./utils";
+import { sanitizeOutputDir, urlToFilename, urlToDirname, getExtension, downloadResources } from "./utils.js";
 import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
 import cheerio from 'cheerio';
 
-const downloadPage = async (pageUrl, outputDirName = '') => {
 
+//const downloadPage = async (pageUrl, outputDirName = '') => {
+  await downloadResources($, pageUrl, fullOutputDirname, assetsDirName);
    // 1. Normalizar nombre de salida 
 outputDirName = sanitizeOutputDir(outputDirName);
 const url = new URL(pageUrl);
@@ -70,4 +71,4 @@ const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
 // utilizar cheerio para parsear el HTML y encontrar los recursos
 // guardar la página y los recursos en las rutas calculadas
 
-};
+
