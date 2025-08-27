@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
 import cheerio from 'cheerio';
-
+import Listr  from 'listr';
 
 const downloadPage = async (pageUrl, outputDirName = '') => {
   log('Iniciando descarga de la página:', pageUrl);
