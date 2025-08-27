@@ -103,3 +103,50 @@ describe('downloadPage con nock', () => {
   });
 });
 
+// ---------------------
+// Tests de manejo de errores
+// ---------------------
+describe('Manejo de errores en downloadPage', () => {
+  const outputDir = 'test-output';
+
+  beforeAll(async () => {
+    await fs.promises.mkdir(outputDir, { recursive: true });
+  });
+
+  afterAll(async () => {
+    await fs.promises.rm(outputDir, { recursive: true, force: true });
+  });
+
+  test('lanza error si el servidor responde con 404', async () => {
+    nock('https://example.com')
+      .get('/page')
+      .reply(404);
+
+    await expect(downloadPage('https://example.com/page', outputDir))
+      .rejects.toThrow(/404/);
+  });
+
+  test('lanza error si no hay conexión de red', async () => {
+    nock.disableNetConnect(); // bloquea cualquier conexión real
+
+    await expect(downloadPage('https://servidor-inexistente.com/page', outputDir))
+      .rejects.toThrow();
+
+    nock.enableNetConnect();
+  });
+
+  test('lanza error si no puede escribir archivo', async () => {
+    const writeSpy = jest.spyOn(fs.promises, 'writeFile')
+      .mockRejectedValue(new Error('EACCES: permiso denegado'));
+
+    nock('https://example.com')
+      .get('/page')
+      .reply(200, '<html></html>');
+
+    await expect(downloadPage('https://example.com/page', outputDir))
+      .rejects.toThrow(/permiso denegado/);
+
+    writeSpy.mockRestore();
+  });
+});
+

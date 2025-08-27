@@ -65,11 +65,23 @@ const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
         const modifiedHtml = $.html();
         return fs.writeFile(fullOutputFileName, modifiedHtml);
       })
+      // .catch((err) => {
+      //   log('Error descargando la página:', err.message);
+      //   console.error("Error descargando la página:", err.message);
+      // });
       .catch((err) => {
-        log('Error descargando la página:', err.message);
-        console.error("Error descargando la página:", err.message);
+        if (err.response) {
+          // Error HTTP
+          throw new Error(`Fallo al descargar recurso ${pageUrl}: código ${err.response.status}`);
+        } else if (err.request) {
+          // Problema de red
+          throw new Error(`No se pudo conectar con ${pageUrl}: ${err.message}`);
+        } else {
+          // Otro error (archivos, permisos, etc.)
+          throw new Error(`Error al procesar ${pageUrl}: ${err.message}`);
+        }
       });
-  });
+    });
   
 // ... lógica para descargar la página y los recursos asociados utiliza then y catch
 // utilizar axion con la patch url para descargar la página
