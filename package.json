@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-     "page-loader": "./bin/page-loader.js",
+    "page-loader": "./bin/page-loader.js",
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -14,7 +14,7 @@
   "dependencies": {
     "axios": "^1.11.0",
     "cheerio": "^1.1.2",
-    "debug": "^4.4.1"
+    "debug": "^4.4.1",
+    "listr": "^0.14.3"
   }
-  
 }
