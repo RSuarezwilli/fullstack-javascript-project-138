@@ -19,6 +19,27 @@ const fullOutputFileName = path.join(fullOutputDirname, fileName + extencion);
 const assetsDirName = urlToDirname(slug);
 const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
 
+const tasks = new Listr([
+  {
+    title: 'Descargando recursos',
+    task: () =>
+      new Listr(
+        [
+          {
+            title: 'Descargando imágenes, scripts y css',
+            task: () => downloadResources(pageUrl, fullOutputDirname),
+          },
+        ],
+        { concurrent: true } // tareas en paralelo
+      ),
+  },
+]);
+
+await tasks.run();
+};
+
+
+
  // 2. Descargar página principal
  return axios
  .get(pageUrl)
@@ -88,4 +109,4 @@ const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
 // utilizar cheerio para parsear el HTML y encontrar los recursos
 // guardar la página y los recursos en las rutas calculadas
 
-};
+
