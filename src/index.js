@@ -37,22 +37,16 @@ const tasks = new Listr([
 ]);
 
 await tasks.run();
-return axios
+
+};
+// 2. Descargar página principal
+ return axios
  .get(pageUrl)
  .then((response) => {
   log('Página principal descargada correctamente');
 
    const html = response.data;
    const $ = cheerio.load(html);
-});
-// 2. Descargar página principal
-//  return axios
-//  .get(pageUrl)
-//  .then((response) => {
-//   log('Página principal descargada correctamente');
-
-//    const html = response.data;
-//    const $ = cheerio.load(html);
 
  // 3. Buscar recursos (img, link[rel=stylesheet], script[src])
  const resources = [];
@@ -68,7 +62,8 @@ return axios
  // Reemplazar en HTML
         tag.attr(attr, path.join(assetsDirName, resourceName));
         resources.push({ url: resourceFullUrl, path: resourcePath });
-    }
+        return axios
+      }
     });
     log(`Se encontraron ${resources.length} recursos para descargar`);
       // 4. Crear directorios
