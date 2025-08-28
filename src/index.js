@@ -32,22 +32,27 @@ const tasks = new Listr([
         ],
         { concurrent: true } // tareas en paralelo
       ),
+      
   },
 ]);
 
 await tasks.run();
-};
-
-
-
- // 2. Descargar página principal
- return axios
+return axios
  .get(pageUrl)
  .then((response) => {
   log('Página principal descargada correctamente');
 
    const html = response.data;
    const $ = cheerio.load(html);
+});
+// 2. Descargar página principal
+//  return axios
+//  .get(pageUrl)
+//  .then((response) => {
+//   log('Página principal descargada correctamente');
+
+//    const html = response.data;
+//    const $ = cheerio.load(html);
 
  // 3. Buscar recursos (img, link[rel=stylesheet], script[src])
  const resources = [];
