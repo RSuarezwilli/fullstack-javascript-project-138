@@ -21,89 +21,77 @@ const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
 
 const tasks = new Listr([
   {
-    title: 'Descargando recursos',
-    task: () =>
-      new Listr(
-        [
-          {
-            title: 'Descargando imágenes, scripts y css',
-            task: () => downloadResources(pageUrl, fullOutputDirname),
-          },
-        ],
-        { concurrent: true } // tareas en paralelo
-      ),
-      
+    title: "Descargar página principal",
+    task: async () => {
+      const response = await axios.get(pageUrl);
+      console.log("Página principal descargada correctamente");
+
+      const html = response.data;
+      const $ = cheerio.load(html);
+
+      // 3. Buscar recursos (img, css, scripts locales)
+      const resources = [];
+      $("img, link[rel='stylesheet'], script[src]").each((_, el) => {
+        const tag = $(el);
+        const attr = tag.is("img")
+          ? "src"
+          : el.attribs.href
+          ? "href"
+          : "src";
+        const resourceUrl = tag.attr(attr);
+
+        if (resourceUrl && !resourceUrl.startsWith("http")) {
+          const resourceFullUrl = new URL(resourceUrl, pageUrl).href;
+          const resourceName = urlToFilename(resourceUrl);
+          const resourcePath = path.join(fullOutputAssetsDirName, resourceName);
+
+          // Reemplazar en HTML con ruta local
+          tag.attr(attr, path.join(assetsDirName, resourceName));
+
+          resources.push({ url: resourceFullUrl, path: resourcePath });
+        }
+      });
+
+      console.log(`Se encontraron ${resources.length} recursos para descargar`);
+
+      // 4. Crear directorios
+      await fs.mkdir(fullOutputAssetsDirName, { recursive: true });
+
+      // 5. Descargar recursos
+      const downloads = resources.map((res) =>
+        axios
+          .get(res.url, { responseType: "arraybuffer" })
+          .then((r) => fs.writeFile(res.path, r.data))
+      );
+      await Promise.all(downloads);
+      console.log("Recursos descargados correctamente");
+
+      // 6. Guardar HTML modificado
+      await fs.mkdir(fullOutputDirname, { recursive: true });
+      await fs.writeFile(fullOutputFileName, $.html());
+      console.log("Página y recursos guardados en:", fullOutputDirname);
+
+      return fullOutputDirname;
+    },
   },
 ]);
 
-await tasks.run();
-
+// 7. Ejecutar las tareas
+return tasks.run().catch((err) => {
+  if (err.response) {
+    throw new Error(
+      `Fallo al descargar ${pageUrl}: código ${err.response.status}`
+    );
+  } else if (err.request) {
+    throw new Error(`No se pudo conectar con ${pageUrl}: ${err.message}`);
+  } else {
+    throw new Error(`Error al procesar ${pageUrl}: ${err.message}`);
+  }
+});
 };
-// 2. Descargar página principal
- return axios
- .get(pageUrl)
- .then((response) => {
-  log('Página principal descargada correctamente');
 
-   const html = response.data;
-   const $ = cheerio.load(html);
 
- // 3. Buscar recursos (img, link[rel=stylesheet], script[src])
- const resources = [];
- $("img, link[rel='stylesheet'], script[src]").each((_, el) => {
-   const tag = $(el);
-   const attr = tag.is("img") ? "src" : "href" in el.attribs ? "href" : "src";
-   const resourceUrl = tag.attr(attr);
 
-   if (resourceUrl && !resourceUrl.startsWith("http")) {
-     const resourceFullUrl = new URL(resourceUrl, pageUrl).href;
-     const resourceName = urlToFilename(resourceUrl);
-     const resourcePath = path.join(fullOutputAssetsDirName, resourceName);
- // Reemplazar en HTML
-        tag.attr(attr, path.join(assetsDirName, resourceName));
-        resources.push({ url: resourceFullUrl, path: resourcePath });
-        return axios
-      }
-    });
-    log(`Se encontraron ${resources.length} recursos para descargar`);
-      // 4. Crear directorios
-
-      return fs
-      .mkdir(fullOutputAssetsDirName, { recursive: true })
-      .then(() => {
-        // 5. Descargar recursos
-
-        const downloads = resources.map((res) =>
-          axios
-            .get(res.url, { responseType: "arraybuffer" })
-            .then((r) => fs.writeFile(res.path, r.data))
-        );
-        return Promise.all(downloads);
-      })
-      .then(() => {
-        // 6. Guardar HTML modificado
-        log('Recursos descargados y guardados correctamente');
-        const modifiedHtml = $.html();
-        return fs.writeFile(fullOutputFileName, modifiedHtml);
-      })
-      // .catch((err) => {
-      //   log('Error descargando la página:', err.message);
-      //   console.error("Error descargando la página:", err.message);
-      // });
-      .catch((err) => {
-        if (err.response) {
-          // Error HTTP
-          throw new Error(`Fallo al descargar recurso ${pageUrl}: código ${err.response.status}`);
-        } else if (err.request) {
-          // Problema de red
-          throw new Error(`No se pudo conectar con ${pageUrl}: ${err.message}`);
-        } else {
-          // Otro error (archivos, permisos, etc.)
-          throw new Error(`Error al procesar ${pageUrl}: ${err.message}`);
-        }
-      });
-    });
-  
 // ... lógica para descargar la página y los recursos asociados utiliza then y catch
 // utilizar axion con la patch url para descargar la página
 // utilizar cheerio para parsear el HTML y encontrar los recursos
