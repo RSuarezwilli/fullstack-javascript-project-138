@@ -104,4 +104,3 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
     }
   }
 };
-const log = console.log;
