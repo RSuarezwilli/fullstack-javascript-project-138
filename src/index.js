@@ -7,8 +7,8 @@ import cheerio from 'cheerio';
 import Listr  from 'listr';
 import { URL } from 'url';
 
-const downloadPage = async (pageUrl, outputDirName = '') => {
-  log('Iniciando descarga de la página:', pageUrl);
+// const downloadPage = async (pageUrl, outputDirName = '') => {
+//   log('Iniciando descarga de la página:', pageUrl);
   // await downloadResources($, pageUrl, fullOutputDirname, assetsDirName);
    // 1. Normalizar nombre de salida 
 outputDirName = sanitizeOutputDir(outputDirName);
@@ -186,4 +186,4 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
 // utilizar axion con la patch url para descargar la página
 // utilizar cheerio para parsear el HTML y encontrar los recursos
 // guardar la página y los recursos en las rutas calculadas.
-};
+// };
