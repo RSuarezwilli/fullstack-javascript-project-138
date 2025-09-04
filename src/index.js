@@ -1,4 +1,4 @@
-import { sanitizeOutputDir, urlToFilename, urlToDirname, getExtension, log } 
+import { sanitizeOutputDir, urlToFilename, urlToDirname, getExtension } 
 from './utils.js';
 import path from 'path';
 import fs from 'fs/promises';
@@ -15,6 +15,7 @@ const processResource = ($, tagName, attrName, baseUrl, assetsDirName, resources
     const $element = $(element);
     const resourceUrl = $element.attr(attrName);
     
+
     if (resourceUrl) {
       try {
         const absoluteUrl = new URL(resourceUrl, baseUrl).href;
@@ -105,7 +106,7 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
     }
   }
 };
-export default downloadPage;
+
 // 2. Descargar página principal
 //  return axios
 //  .get(pageUrl)
