@@ -7,7 +7,8 @@ import {load} from 'cheerio';
 import Listr  from 'listr';
 import { URL } from 'url';
 
-
+// Agregar sistema de logging
+const log = console.log;
 
 const processResource = ($, tagName, attrName, baseUrl, assetsDirName, resources) => {
   $(tagName).each((_, element) => {
