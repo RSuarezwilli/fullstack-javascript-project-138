@@ -1,4 +1,5 @@
-import { sanitizeOutputDir, urlToFilename, urlToDirname, getExtension } from './utils.js';
+import { sanitizeOutputDir, urlToFilename, urlToDirname, getExtension }
+from './utils.js';
 import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
@@ -84,19 +85,17 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
     const assetsDirName = urlToDirname(slug); // ej: site-com-blog-about_files
     const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName); // ruta absoluta para escribir
 
-    // ====== FIX: Verificar existencia del directorio de salida ======
-    let stat;
+    // ====== Verificar existencia del directorio de salida ======
     try {
-      stat = await fs.stat(fullOutputDirname);
+      const stat = await fs.stat(fullOutputDirname);
       if (!stat.isDirectory()) {
         throw new Error(`La ruta de salida ${fullOutputDirname} no es un directorio`);
       }
     } catch (err) {
-      if (err.code === 'ENOENT') {
-        // 🚨 Lanzar error si el directorio no existe (caso esperado en tests negativos)
-        throw new Error(`La ruta de salida ${fullOutputDirname} no existe`);
+      if (err.code !== 'ENOENT') {
+        throw err;
       }
-      throw err;
+      // Si no existe (ENOENT), está bien: lo crearemos después con mkdir
     }
 
     // Descargar HTML principal
@@ -124,7 +123,6 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
 
     return fullOutputDirname;
   } catch (error) {
-    // Manejo de errores con mensajes claros para los tests
     if (error.response) {
       throw new Error(`Error HTTP ${error.response.status} al descargar ${pageUrl}`);
     } else if (error.request) {
@@ -136,6 +134,7 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
 };
 
 export default downloadPage;
+
 
 // 2. Descargar página principal
 //  return axios
