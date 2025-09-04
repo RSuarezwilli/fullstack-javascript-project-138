@@ -1,5 +1,3 @@
-// src/index.js
-
 import { sanitizeOutputDir, urlToFilename, urlToDirname, getExtension } from './utils.js';
 import path from 'path';
 import fs from 'fs/promises';
@@ -80,18 +78,25 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
     const url = new URL(pageUrl);
     const slug = url.hostname + url.pathname;
     const fileName = urlToFilename(slug);
-
     const fullOutputDirname = path.resolve(process.cwd(), outputDirName);
     const extension = getExtension(fileName) === '.html' ? '' : '.html';
     const fullOutputFileName = path.join(fullOutputDirname, fileName + extension);
-
     const assetsDirName = urlToDirname(slug); // ej: site-com-blog-about_files
     const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName); // ruta absoluta para escribir
 
-    // Si existe la ruta pero NO es un directorio -> lanzar error (cubrir caso de tests negativos)
-    const stat = await fs.stat(fullOutputDirname).catch(() => null);
-    if (stat && !stat.isDirectory()) {
-      throw new Error(`La ruta de salida ${fullOutputDirname} no es un directorio`);
+    // ====== FIX: Verificar existencia del directorio de salida ======
+    let stat;
+    try {
+      stat = await fs.stat(fullOutputDirname);
+      if (!stat.isDirectory()) {
+        throw new Error(`La ruta de salida ${fullOutputDirname} no es un directorio`);
+      }
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        // 🚨 Lanzar error si el directorio no existe (caso esperado en tests negativos)
+        throw new Error(`La ruta de salida ${fullOutputDirname} no existe`);
+      }
+      throw err;
     }
 
     // Descargar HTML principal
