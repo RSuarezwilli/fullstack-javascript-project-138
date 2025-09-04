@@ -1,3 +1,5 @@
+// src/index.js
+
 import { sanitizeOutputDir, urlToFilename, urlToDirname, getExtension } from './utils.js';
 import path from 'path';
 import fs from 'fs/promises';
@@ -6,68 +8,74 @@ import { load } from 'cheerio';
 import Listr from 'listr';
 import { URL } from 'url';
 
-// Logger simple (usamos console.log)
 const log = console.log;
 
-const processResource = ($, tagName, attrName, baseUrl, assetsDirName, resources) => {
+// ====== Procesa etiquetas y arma lista de recursos (usa rutas absolutas para guardar) ======
+const processResource = ($, tagName, attrName, baseUrl, assetsDirName, resources, outputAssetsDir) => {
   $(tagName).each((_, element) => {
     const $element = $(element);
     const resourceUrl = $element.attr(attrName);
 
-    if (resourceUrl) {
-      try {
-        // Convertir a URL absoluta
-        const absoluteUrl = new URL(resourceUrl, baseUrl);
+    if (!resourceUrl) return;
 
-        if (absoluteUrl.hostname === new URL(baseUrl).hostname) {
-          const resourceName = urlToFilename(absoluteUrl.href);
-          const localPath = path.join(assetsDirName, resourceName);
+    try {
+      const absoluteUrl = new URL(resourceUrl, baseUrl);
 
-          // Cambiar en el HTML original la ruta al recurso local
-          $element.attr(attrName, localPath);
-          resources.push({
-            url: absoluteUrl.href,
-            path: path.join(process.cwd(), outputDirName, assetsDirName, resourceName), 
-            filename: resourceName,
-          });
-        }
-      } catch (error) {
-        log(` Error procesando recurso ${resourceUrl}:`, error.message);
+      // Solo recursos del mismo dominio
+      if (absoluteUrl.hostname === new URL(baseUrl).hostname) {
+        const resourceName = urlToFilename(absoluteUrl.href);
+
+        // Ruta relativa que irá dentro del HTML (ej: site-com-blog-about_files/archivo.jpg)
+        const relativeLocalPath = path.join(assetsDirName, resourceName);
+
+        // Ruta absoluta donde se guardará el archivo en disco
+        const fullLocalPath = path.join(outputAssetsDir, resourceName);
+
+        // Reemplazar en el HTML por la ruta relativa
+        $element.attr(attrName, relativeLocalPath);
+
+        // Añadir meta para descarga: path es absoluta (fs.writeFile usará esta ruta)
+        resources.push({
+          url: absoluteUrl.href,
+          path: fullLocalPath,
+          filename: resourceName,
+          localPath: relativeLocalPath,
+        });
       }
+    } catch (error) {
+      log(`Error procesando recurso ${resourceUrl}:`, error.message);
     }
   });
 };
-const processAllResources = ($, pageUrl, assetsDirName) => {
+
+// ====== Llama processResource para img, css y js ======
+const processAllResources = ($, pageUrl, assetsDirName, outputAssetsDir) => {
   const resources = [];
   const baseUrl = pageUrl;
 
-  // Detectar imágenes
-  processResource($, 'img', 'src', baseUrl, assetsDirName, resources);
-
-  // Detectar hojas de estilo
-  processResource($, 'link[rel="stylesheet"]', 'href', baseUrl, assetsDirName, resources);
-
-  // Detectar scripts
-  processResource($, 'script[src]', 'src', baseUrl, assetsDirName, resources);
+  processResource($, 'img', 'src', baseUrl, assetsDirName, resources, outputAssetsDir);
+  processResource($, 'link[rel="stylesheet"]', 'href', baseUrl, assetsDirName, resources, outputAssetsDir);
+  processResource($, 'script[src]', 'src', baseUrl, assetsDirName, resources, outputAssetsDir);
 
   return resources;
 };
 
+// ====== Descargar un recurso a disco (resource.path es absoluta) ======
 const downloadResource = (resource) => {
   return axios
     .get(resource.url, { responseType: 'arraybuffer' })
     .then((response) => fs.writeFile(resource.path, response.data))
-    .then(() => log(` Recurso descargado: ${resource.filename}`))
+    .then(() => log(`Recurso descargado: ${resource.filename}`))
     .catch((error) => {
-      log(` Error descargando ${resource.url}:`, error.message);
+      log(`Error descargando ${resource.url}:`, error.message);
       throw error;
     });
 };
 
-
+// ====== Función principal ======
 const downloadPage = async (pageUrl, outputDirName = '') => {
   try {
-    // --- A. Preparar nombres y directorios ---
+    // Normalizar nombre de salida y rutas
     outputDirName = sanitizeOutputDir(outputDirName);
     const url = new URL(pageUrl);
     const slug = url.hostname + url.pathname;
@@ -77,21 +85,27 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
     const extension = getExtension(fileName) === '.html' ? '' : '.html';
     const fullOutputFileName = path.join(fullOutputDirname, fileName + extension);
 
-    const assetsDirName = urlToDirname(slug);
-    const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
+    const assetsDirName = urlToDirname(slug); // ej: site-com-blog-about_files
+    const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName); // ruta absoluta para escribir
 
-    // --- B. Descargar HTML principal ---
+    // Si existe la ruta pero NO es un directorio -> lanzar error (cubrir caso de tests negativos)
+    const stat = await fs.stat(fullOutputDirname).catch(() => null);
+    if (stat && !stat.isDirectory()) {
+      throw new Error(`La ruta de salida ${fullOutputDirname} no es un directorio`);
+    }
+
+    // Descargar HTML principal
     const response = await axios.get(pageUrl);
     const $ = load(response.data);
 
-    // --- C. Buscar recursos internos (imágenes, css, js) ---
-    const resources = processAllResources($, pageUrl, assetsDirName);
+    // Procesar recursos (pasamos la carpeta absoluta donde guardaremos)
+    const resources = processAllResources($, pageUrl, assetsDirName, fullOutputAssetsDirName);
 
-    // --- D. Crear carpetas necesarias ---
+    // Crear directorios (ahora sí)
     await fs.mkdir(fullOutputDirname, { recursive: true });
     await fs.mkdir(fullOutputAssetsDirName, { recursive: true });
 
-    // --- E. Descargar recursos en paralelo ---
+    // Preparar tareas y descargar recursos en paralelo
     const downloadTasks = resources.map((resource) => ({
       title: `Descargando ${resource.filename}`,
       task: () => downloadResource(resource),
@@ -100,12 +114,12 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
     const tasks = new Listr(downloadTasks, { concurrent: true });
     await tasks.run();
 
-    // --- F. Guardar HTML modificado ---
+    // Guardar HTML modificado (con rutas relativas a assets)
     await fs.writeFile(fullOutputFileName, $.html());
 
     return fullOutputDirname;
   } catch (error) {
-    // --- Manejo de errores ---
+    // Manejo de errores con mensajes claros para los tests
     if (error.response) {
       throw new Error(`Error HTTP ${error.response.status} al descargar ${pageUrl}`);
     } else if (error.request) {
@@ -115,6 +129,7 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
     }
   }
 };
+
 export default downloadPage;
 
 // 2. Descargar página principal
