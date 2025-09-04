@@ -27,7 +27,7 @@ const processResource = ($, tagName, attrName, baseUrl, assetsDirName, resources
           $element.attr(attrName, localPath);
           resources.push({
             url: absoluteUrl.href,
-            path: path.join(assetsDirName, resourceName),
+            path: path.join(process.cwd(), outputDirName, assetsDirName, resourceName), 
             filename: resourceName,
           });
         }
