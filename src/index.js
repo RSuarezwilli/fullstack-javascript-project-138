@@ -104,7 +104,7 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
     }
   }
 };
-const log = console.log;
+export default downloadPage;
 // 2. Descargar página principal
 //  return axios
 //  .get(pageUrl)
