@@ -8,18 +8,18 @@ import Listr  from 'listr';
 import { URL } from 'url';
 
 // const downloadPage = async (pageUrl, outputDirName = '') => {
-//   log('Iniciando descarga de la página:', pageUrl);
-  // await downloadResources($, pageUrl, fullOutputDirname, assetsDirName);
+ log('Iniciando descarga de la página:', pageUrl);
+  //await downloadResources($, pageUrl, fullOutputDirname, assetsDirName);
    // 1. Normalizar nombre de salida 
-outputDirName = sanitizeOutputDir(outputDirName);
-const url = new URL(pageUrl);
-const  slug = url.hostname + url.pathname;
-const fileName = urlToFilename (slug);
-const fullOutputDirname = path.resolve(process.cwd(), outputDirName);
-const extencion = getExtension(fileName);
-const fullOutputFileName = path.join(fullOutputDirname, fileName + extencion);
-const assetsDirName = urlToDirname(slug);
-const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
+// outputDirName = sanitizeOutputDir(outputDirName);
+// const url = new URL(pageUrl);
+// const  slug = url.hostname + url.pathname;
+// const fileName = urlToFilename (slug);
+// const fullOutputDirname = path.resolve(process.cwd(), outputDirName);
+// const extencion = getExtension(fileName);
+// const fullOutputFileName = path.join(fullOutputDirname, fileName + extencion);
+// const assetsDirName = urlToDirname(slug);
+// const fullOutputAssetsDirName = path.join(fullOutputDirname, assetsDirName);
 
 
 const processResource = ($, tagName, attrName, baseUrl, assetsDirName, resources) => {
@@ -186,4 +186,4 @@ const downloadPage = async (pageUrl, outputDirName = '') => {
 // utilizar axion con la patch url para descargar la página
 // utilizar cheerio para parsear el HTML y encontrar los recursos
 // guardar la página y los recursos en las rutas calculadas.
-// };
+ //};
