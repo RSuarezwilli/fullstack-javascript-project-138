@@ -2,7 +2,7 @@
   "name": "@hexlet/code",
   "version": "1.0.0",
   "description": "[![Actions Status](https://github.com/RSuarezwilli/fullstack-javascript-project-138/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/RSuarezwilli/fullstack-javascript-project-138/actions)",
- "main": "src/index.js",
+  "main": "src/index.js",
   "type": "module",
   "scripts": {
     "page-loader": "./bin/page-loader.js",
@@ -15,6 +15,6 @@
     "axios": "^1.11.0",
     "cheerio": "^1.1.2",
     "debug": "^4.4.1",
-    "listr": "^0.14.3"
+    "listr2": "^9.0.3"
   }
 }
