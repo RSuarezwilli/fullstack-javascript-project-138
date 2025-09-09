@@ -2,7 +2,8 @@
 
 import { program } from 'commander';
 import path from 'path';
-import downloadPage from '../src/pageLoader.js'; // Importa como default
+import downloadPage from '../src/index.js'; // Importa como default
+
 
 program
   .version('1.0.0')
