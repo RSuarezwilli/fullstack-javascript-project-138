@@ -4,7 +4,7 @@ import path from 'path';
 import * as cheerio from 'cheerio';
 import axios from 'axios';
 import nock from 'nock';
-import { processHtml } from '../src/index.js';
+import downloadPage from '../src/index.js';
 
 // 1. Leer HTML desde fixtures
 const loadFixtureHtml = (fileName) => {
@@ -29,7 +29,7 @@ const downloadImage = async (url, destPath) => {
 };
 
 // 4. Procesar HTML: descargar imágenes y reemplazar rutas
-export const processHtmlResources = async (htmlFileName) => {
+const processHtml = async (htmlFileName) => {
   const html = loadFixtureHtml(htmlFileName);
   const $ = cheerio.load(html);
   const folderPath = createFilesFolder(htmlFileName);
@@ -41,8 +41,8 @@ export const processHtmlResources = async (htmlFileName) => {
 
       // Convertir la URL a un nombre de archivo seguro
       const fileNameSafe = originalSrc
-        .replace(/^\//, '')     // quitar slash inicial
-        .replace(/\//g, '-');   // reemplazar slashes por guiones
+        .replace(/^\//, '') // quitar slash inicial
+        .replace(/\//g, '-'); // reemplazar slashes por guiones
 
       const localFileName = `${path.basename(htmlFileName, '.html')}-${fileNameSafe}`;
       const localPath = path.join(folderPath, localFileName);
@@ -52,7 +52,7 @@ export const processHtmlResources = async (htmlFileName) => {
 
       // Cambiar el src en el HTML
       $(img).attr('src', `${path.basename(folderPath)}/${localFileName}`);
-    }).get()
+    }).get(),
   );
 
   // Guardar el HTML modificado
@@ -86,7 +86,7 @@ describe('downloadPage con nock', () => {
   test('descarga HTML y lo reescribe con rutas locales', async () => {
     nock('https://example.com')
       .get('/page')
-      .reply(200, `<html><body><img src="/assets/logo.png"></body></html>`);
+      .reply(200, '<html><body><img src="/assets/logo.png"></body></html>');
 
     nock('https://example.com')
       .get('/assets/logo.png')
@@ -96,7 +96,7 @@ describe('downloadPage con nock', () => {
 
     const htmlFile = await fs.readFile(
       path.join(outputDir, 'example-com-page.html'),
-      'utf-8'
+      'utf-8',
     );
 
     expect(htmlFile).toContain('example-com-page_files/example-com-page-assets-logo.png');
@@ -149,4 +149,3 @@ describe('Manejo de errores en downloadPage', () => {
     writeSpy.mockRestore();
   });
 });
-

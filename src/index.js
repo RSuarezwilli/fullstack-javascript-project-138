@@ -1,100 +1,69 @@
-import axios from 'axios';
 import path from 'path';
-import { promises as fs } from 'fs';
-import { URL } from 'url';
-import * as cheerio from 'cheerio';
-import debug from 'debug';
-import _ from 'lodash';
-import { Listr } from 'listr2';
-import {
-  urlToFilename, urlToDirname, getExtension, sanitizeOutputDir,
-} from './utils.js';
+import fs from 'fs/promises';
+import axios from 'axios';
 
-const log = debug('page-loader');
-
-//  Procesa y reemplaza las URLs de recursos dentro del HTML
-const processResource = ($, tagName, attrName, baseUrl, baseDirname, assets) => {
-  const $elements = $(tagName).toArray();
-  const elementsWithUrls = $elements
-    .map((element) => $(element))
-    .filter(($element) => $element.attr(attrName))
-    .map(($element) => ({ $element, url: new URL($element.attr(attrName), baseUrl) }))
-    .filter(({ url }) => url.origin === baseUrl);
-
-  elementsWithUrls.forEach(({ $element, url }) => {
-    const slug = urlToFilename(`${url.hostname}${url.pathname}`);
-    const filepath = path.join(baseDirname, slug);
-    assets.push({ url, filename: slug });
-    $element.attr(attrName, filepath);
-  });
+const processedName = (name) => name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+export const urlToFilename = (link, defaultFormat = '.html') => {
+  const { dir, name, ext } = path.parse(link);
+  const slug = processedName(path.join(dir, name));
+  const format = ext || defaultFormat;
+  return `${slug}${format}`;
 };
 
-//  Obtiene y procesa todos los recursos del HTML
-const processResources = (baseUrl, baseDirname, html) => {
-  const $ = cheerio.load(html, { decodeEntities: false });
-  const assets = [];
-
-  processResource($, 'img', 'src', baseUrl, baseDirname, assets);
-  processResource($, 'link', 'href', baseUrl, baseDirname, assets);
-  processResource($, 'script', 'src', baseUrl, baseDirname, assets);
-
-  return { html: $.html(), assets };
+export const urlToDirname = (link) => {
+  const { dir, name } = path.parse(link);
+  const slug = processedName(path.join(dir, name));
+  return `${slug}_files`;
 };
 
-const downloadAsset = (dirname, { url, filename }) => axios.get(url.toString(), { responseType: 'arraybuffer' }).then((response) => {
-  const fullPath = path.join(dirname, filename);
-  return fs.writeFile(fullPath, response.data);
-});
+export const getExtension = (fileName) => {
+  const ext = path.extname(fileName);
+  return ext || '';
+};
 
-// Función principal para descargar una página
-const downloadPage = async (pageUrl, outputDirName = '') => {
-  outputDirName = sanitizeOutputDir(outputDirName);
+export const sanitizeOutputDir = (dir) => {
+  const restrictedPaths = ['/sys', '/dev', '/proc', '/etc', '/bin', '/lib', '/usr'];
+  if (restrictedPaths.includes(dir)) {
+    throw new Error(`Refusing to write to restricted directory: ${dir}`);
+  }
+  return dir;
+};
 
-  log('url', pageUrl);
-  log('output', outputDirName);
+// Descarga y reescribe recursos locales (img, link, script)
+export const downloadResources = async ($, pageUrl, outputDir) => {
+  const pageHost = new URL(pageUrl).hostname;
 
-  const url = new URL(pageUrl);
-  const slug = `${url.hostname}${url.pathname}`;
-  const filename = urlToFilename(slug);
-  const fullOutputDirname = path.resolve(process.cwd(), outputDirName);
-  const extension = getExtension(filename) === '.html' ? '' : '.html';
-  const fullOutputFilename = path.join(fullOutputDirname, `${filename}${extension}`);
-  const assetsDirname = urlToDirname(slug);
-  const fullOutputAssetsDirname = path.join(fullOutputDirname, assetsDirname);
+  const elements = [
+    { selector: 'img[src]', attr: 'src' },
+    { selector: 'link[href]', attr: 'href' },
+    { selector: 'script[src]', attr: 'src' },
+  ];
 
-  let data;
-  const promise = axios
-    .get(pageUrl)
-    .then((response) => {
-      const html = response.data;
+  const resources = [];
 
-      data = processResources(url.origin, assetsDirname, html);
-      log('create (if not exists) directory for assets', fullOutputAssetsDirname);
-      return fs.access(fullOutputAssetsDirname).catch(() => fs.mkdir(fullOutputAssetsDirname));
-    })
-    .then(() => {
-      log(`HTML saved: ${fullOutputFilename}`);
-      return fs.writeFile(fullOutputFilename, data.html);
-    })
-    .then(() => {
-      const tasks = data.assets.map((asset) => {
-        log('asset', asset.url.toString(), asset.filename);
-        return {
-          title: asset.url.toString(),
-          task: () => downloadAsset(fullOutputAssetsDirname, asset).catch(_.noop),
-        };
-      });
+  elements.forEach(({ selector, attr }) => {
+    $(selector).each((_, el) => {
+      const value = $(el).attr(attr);
+      if (!value) return;
 
-      const listr = new Listr(tasks, { concurrent: true });
-      return listr.run();
-    })
-    .then(() => {
-      log(`File successfully saved at: ${fullOutputFilename}`);
-      return { filepath: fullOutputFilename };
+      const resourceUrl = new URL(value, pageUrl);
+
+      // Solo recursos locales (mismo dominio o subdominios)
+      if (resourceUrl.hostname.endsWith(pageHost)) {
+        resources.push({ el, attr, url: resourceUrl.toString() });
+      }
     });
+  });
+  // eslint-disable-next-line   no-restricted-syntax
+  for (const { el, attr, url } of resources) {
+    const filename = urlToFilename(url, ''); // usa tu helper
+    const filepath = path.join(outputDir, filename);
+    // eslint-disable-next-line no-await-in-loop
+    const { data } = await axios.get(url, { responseType: 'arraybuffer' });
+    // eslint-disable-next-line no-await-in-loop
+    await fs.writeFile(filepath, data);
 
-  log('WHAT I RETURN AS PROMISE', promise);
-  return promise;
+    // Reescribir en el HTML
+    $(el).attr(attr, `${path.basename(outputDir)}/${filename}`);
+  }
 };
-
-export default downloadPage;

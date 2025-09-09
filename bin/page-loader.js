@@ -4,7 +4,6 @@ import { program } from 'commander';
 import path from 'path';
 import downloadPage from '../src/index.js'; // Importa como default
 
-
 program
   .version('1.0.0')
   .description('Downloads a webpage and its resources.')
