@@ -29,7 +29,7 @@ const downloadImage = async (url, destPath) => {
 };
 
 // 4. Procesar HTML: descargar imágenes y reemplazar rutas
-export const processHtml = async (htmlFileName) => {
+export const processHtmlResources = async (htmlFileName) => {
   const html = loadFixtureHtml(htmlFileName);
   const $ = cheerio.load(html);
   const folderPath = createFilesFolder(htmlFileName);
